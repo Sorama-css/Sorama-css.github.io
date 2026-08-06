@@ -43,7 +43,7 @@ const restPosts = posts.filter((p) => p !== featured);
       <div class="hero-bg" data-parallax data-parallax-speed="0.08"></div>
       <div class="hero-content">
         <span class="hero-eyebrow reveal">Soramad的个人博客</span>
-        <h1 class="hero-title text-split">用心记录<br/>每一个想法</h1>
+        <h1 class="hero-title typewriter" id="heroTitle">唯有我一人逃脱，来报信给你</h1>
         <p class="hero-subtitle reveal" data-delay="200">
           在这里，记录关于技术、阅读与生活的思考。追求简洁，珍视深度。
         </p>
@@ -137,6 +137,33 @@ const restPosts = posts.filter((p) => p !== featured);
 </BaseLayout>
 
 <script>
+  // 打字机效果
+  function initTypewriter() {
+    const el = document.getElementById('heroTitle');
+    if (!el) return;
+    const fullText = el.textContent || '';
+    el.textContent = '';
+    el.classList.add('typing');
+
+    let i = 0;
+    const speed = 120; // 每个字符的打字间隔（毫秒）
+
+    function type() {
+      if (i < fullText.length) {
+        el.textContent = fullText.slice(0, i + 1);
+        i++;
+        setTimeout(type, speed);
+      } else {
+        // 打字完成后移除光标闪烁，改为常亮光标
+        el.classList.remove('typing');
+        el.classList.add('typing-done');
+      }
+    }
+
+    // 延迟启动，等 Hero 区域淡入后开始
+    setTimeout(type, 600);
+  }
+
   // 分类筛选
   const buttons = document.querySelectorAll('.category-btn');
   const cards = document.querySelectorAll('#masonryGrid .post-card');
@@ -165,4 +192,7 @@ const restPosts = posts.filter((p) => p !== featured);
       });
     });
   });
+
+  // 页面加载后启动打字机
+  initTypewriter();
 </script>

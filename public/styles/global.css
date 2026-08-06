@@ -775,6 +775,36 @@ body.fade-out { opacity: 0; transition: opacity 300ms var(--ease-out); }
   border-bottom: 1px solid var(--border-light);
 }
 
+/* ========== 打字机效果 ========== */
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 3px solid var(--text-primary);
+  display: inline-block;
+  min-height: 1.15em;
+  font-size: clamp(1.4rem, 4vw, 2.8rem) !important;
+}
+/* 打字中：光标闪烁 */
+.typewriter.typing {
+  animation: blinkCursor 0.8s step-end infinite;
+}
+/* 打字完成：光标常亮 */
+.typewriter.typing-done {
+  animation: blinkCursor 1s step-end infinite;
+}
+@keyframes blinkCursor {
+  0%, 100% { border-right-color: var(--text-primary); }
+  50% { border-right-color: transparent; }
+}
+/* 减少动画模式下直接显示全部文字 */
+@media (prefers-reduced-motion: reduce) {
+  .typewriter { white-space: normal; border-right: none; }
+  .typewriter.typing, .typewriter.typing-done { animation: none; }
+}
+@media (max-width: 640px) {
+  .typewriter { font-size: clamp(1.1rem, 5vw, 1.6rem) !important; }
+}
+
 /* ========== 旧列表样式兼容 ========== */
 .post-list {
   list-style: none;
