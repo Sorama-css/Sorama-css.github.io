@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+---
+
+<BaseLayout title="首页" description="素记 — 一个极简的静态博客，用心记录每一个想法">
+  <Header />
+  <main id="main-content">
+    <section class="home-hero animate-fade-in-up">
+      <h1>你好，欢迎来到素记</h1>
+      <p>在这里，我记录关于技术、阅读与生活的思考。追求简洁，珍视深度。</p>
+    </section>
+
+    <section aria-label="文章列表">
+      <ul class="post-list stagger">
+        {posts.map((post) => (
+          <li class="post-item">
+            <article>
+              <header class="post-item-header">
+                <h2 class="post-item-title">
+                  <a href={`/blog/${post.slug}`}>{post.data.title}</a>
+                </h2>
+                <div class="post-item-meta">
+                  <time datetime={post.data.pubDate.toISOString()}>
+                    {formatDate(post.data.pubDate)}
+                  </time>
+                  {post.data.tags && post.data.tags.length > 0 && (
+                    <span>· {post.data.tags.length} 个标签</span>
+                  )}
+                </div>
+              </header>
+              <p class="post-item-description">{post.data.description}</p>
+              {post.data.tags && post.data.tags.length > 0 && (
+                <div class="tags">
+                  {post.data.tags.map((tag) => (
+                    <a href={`/tags/${tag}`} class="tag">#{tag}</a>
+                  ))}
+                </div>
+              )}
+            </article>
+          </li>
+        ))}
+      </ul>
+
+      {posts.length === 0 && (
+        <p style="text-align: center; color: var(--color-text-muted); padding: 2rem 0;">
+          暂无文章，敬请期待。
+        </p>
+      )}
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

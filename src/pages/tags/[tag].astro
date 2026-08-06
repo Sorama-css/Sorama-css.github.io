@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  const allTags = new Set<string>();
+  posts.forEach((post) => post.data.tags?.forEach((tag) => allTags.add(tag)));
+
+  return Array.from(allTags).map((tag) => ({
+    params: { tag },
+  }));
+}
+
+const { tag } = Astro.params;
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft && data.tags?.includes(tag)))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+---
+
+<BaseLayout title={`标签: ${tag}`} description={`所有标记为 ${tag} 的文章`}>
+  <Header />
+  <main id="main-content">
+    <a href="/tags" class="back-link animate-fade-in">← 所有标签</a>
+
+    <header class="page-header animate-fade-in-up">
+      <h1>
+        <span class="tag" style="font-size: 1rem; padding: 4px 14px;">#{tag}</span>
+      </h1>
+      <p>共 {posts.length} 篇文章</p>
+    </header>
+
+    <ul class="post-list stagger">
+      {posts.map((post) => (
+        <li class="post-item">
+          <article>
+            <header class="post-item-header">
+              <h2 class="post-item-title">
+                <a href={`/blog/${post.slug}`}>{post.data.title}</a>
+              </h2>
+              <div class="post-item-meta">
+                <time datetime={post.data.pubDate.toISOString()}>
+                  {formatDate(post.data.pubDate)}
+                </time>
+              </div>
+            </header>
+            <p class="post-item-description">{post.data.description}</p>
+            {post.data.tags && post.data.tags.length > 0 && (
+              <div class="tags">
+                {post.data.tags.map((t) => (
+                  <a href={`/tags/${t}`} class="tag">#{t}</a>
+                ))}
+              </div>
+            )}
+          </article>
+        </li>
+      ))}
+    </ul>
+
+    {posts.length === 0 && (
+      <p style="text-align: center; color: var(--color-text-muted); padding: 2rem 0;">
+        该标签下暂无文章。
+      </p>
+    )}
+  </main>
+  <Footer />
+</BaseLayout>
