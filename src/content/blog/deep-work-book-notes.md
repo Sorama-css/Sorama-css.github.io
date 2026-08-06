@@ -3,6 +3,9 @@ title: 阅读《深度工作》后的三点改变
 description: Cal Newport 的《深度工作》改变了我对工作的认知，分享书中最有价值的三个观点以及我的实践。
 pubDate: 2024-04-05
 tags: [读书, 效率, 深度工作]
+cover: https://picsum.photos/seed/deepwork/600/400
+coverAlt: 《深度工作》读书笔记封面
+category: 阅读
 ---
 
 ## 关于这本书

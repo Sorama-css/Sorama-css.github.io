@@ -3,6 +3,9 @@ title: TypeScript 类型体操入门
 description: 从实际案例出发，介绍 TypeScript 高级类型的常用技巧，让你的类型系统更强大。
 pubDate: 2024-05-18
 tags: [技术, TypeScript, 前端]
+cover: https://picsum.photos/seed/typescript/600/400
+coverAlt: TypeScript 类型体操封面
+category: 技术
 ---
 
 ## 为什么要学类型体操

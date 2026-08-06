@@ -3,6 +3,9 @@ title: 极简主义与数字生活
 description: 谈谈极简主义如何改变我与技术的关系，以及一些实用的实践建议。
 pubDate: 2024-03-10
 tags: [生活, 极简主义, 思考]
+cover: https://picsum.photos/seed/minimalism/600/400
+coverAlt: 极简主义数字生活封面
+category: 生活
 ---
 
 ## 从物质到数字

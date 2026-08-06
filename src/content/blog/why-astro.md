@@ -3,6 +3,10 @@ title: 为什么选择 Astro 构建静态博客
 description: 对比主流静态站点生成器，分享选择 Astro 的核心理由与实际体验。
 pubDate: 2024-02-20
 tags: [技术, Astro, 前端]
+cover: https://picsum.photos/seed/why-astro/600/400
+coverAlt: Astro 构建博客封面
+category: 技术
+featured: true
 ---
 
 ## 静态站点生成器的选择
