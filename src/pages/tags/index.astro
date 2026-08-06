@@ -7,6 +7,7 @@ import { getCollection } from 'astro:content';
 const posts = (await getCollection('blog', ({ data }) => !data.draft))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
+// 收集所有标签及其文章数量
 const tagMap = new Map<string, number>();
 posts.forEach((post) => {
   post.data.tags?.forEach((tag) => {
@@ -17,23 +18,22 @@ posts.forEach((post) => {
 const tags = Array.from(tagMap.entries()).sort((a, b) => b[1] - a[1]);
 
 const formatDate = (date: Date) =>
-  date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const getCover = (post: typeof posts[0]) =>
+  post.data.cover || `https://picsum.photos/seed/${encodeURIComponent(post.slug)}/600/400`;
 ---
 
 <BaseLayout title="所有标签" description="浏览博客的所有标签分类">
   <Header />
   <main id="main-content">
-    <header class="page-header animate-fade-in-up">
-      <h1>所有标签</h1>
+    <header class="page-header reveal">
+      <h1 class="text-split">所有标签</h1>
       <p>共 {tags.length} 个标签，{posts.length} 篇文章</p>
     </header>
 
     {tags.length > 0 && (
-      <div class="tag-cloud stagger">
+      <div class="tag-cloud stagger" style="margin-bottom: var(--space-2xl);">
         {tags.map(([tag, count]) => (
           <a href={`/tags/${tag}`} class="tag">
             #{tag} <span style="opacity: 0.6;">({count})</span>
@@ -42,24 +42,29 @@ const formatDate = (date: Date) =>
       </div>
     )}
 
-    <section aria-label="最新文章">
-      <h2 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: var(--space-lg); margin-top: var(--space-2xl);">最新文章</h2>
-      <ul class="post-list stagger">
-        {posts.slice(0, 5).map((post) => (
-          <li class="post-item">
-            <article>
-              <h3 class="post-item-title" style="font-size: 1.1rem;">
-                <a href={`/blog/${post.slug}`}>{post.data.title}</a>
-              </h3>
-              <div class="post-item-meta">
-                <time datetime={post.data.pubDate.toISOString()}>
-                  {formatDate(post.data.pubDate)}
-                </time>
+    <section class="magazine-layout">
+      <div class="section-header reveal">
+        <h2 class="section-title">最新文章</h2>
+      </div>
+      <div class="masonry-grid">
+        {posts.map((post, i) => (
+          <article class="post-card tilt-card reveal" data-delay={(i % 6) * 80}>
+            <a href={`/blog/${post.slug}`} style="text-decoration: none; color: inherit;">
+              <div class="card-cover-wrap">
+                <img class="card-cover" src={getCover(post)} alt={post.data.title} loading="lazy" />
               </div>
-            </article>
-          </li>
+              <div class="card-body">
+                {post.data.category && <span class="card-category">{post.data.category}</span>}
+                <h3 class="card-title">{post.data.title}</h3>
+                <p class="card-excerpt">{post.data.description}</p>
+                <div class="card-footer">
+                  <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+                </div>
+              </div>
+            </a>
+          </article>
         ))}
-      </ul>
+      </div>
     </section>
   </main>
   <Footer />

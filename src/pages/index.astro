@@ -8,58 +8,161 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
 const formatDate = (date: Date) =>
-  date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+
+// 收集所有分类
+const categorySet = new Set<string>();
+posts.forEach((post) => {
+  if (post.data.category) categorySet.add(post.data.category);
+});
+const categories = ['全部', ...Array.from(categorySet)];
+
+// 收集所有标签
+const tagMap = new Map<string, number>();
+posts.forEach((post) => {
+  post.data.tags?.forEach((tag) => {
+    tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
   });
+});
+const tags = Array.from(tagMap.entries()).sort((a, b) => b[1] - a[1]);
+
+// 获取封面图（无封面时使用 picsum 随机图）
+const getCover = (post: typeof posts[0]) =>
+  post.data.cover || `https://picsum.photos/seed/${encodeURIComponent(post.slug)}/600/400`;
+
+// 特色文章（第一篇或有 featured 标记的）
+const featured = posts.find((p) => p.data.featured) || posts[0];
+const restPosts = posts.filter((p) => p !== featured);
 ---
 
 <BaseLayout title="首页" description="素记 — 一个极简的静态博客，用心记录每一个想法">
   <Header />
   <main id="main-content">
-    <section class="home-hero animate-fade-in-up">
-      <h1>你好，欢迎来到素记</h1>
-      <p>在这里，我记录关于技术、阅读与生活的思考。追求简洁，珍视深度。</p>
-    </section>
-
-    <section aria-label="文章列表">
-      <ul class="post-list stagger">
-        {posts.map((post) => (
-          <li class="post-item">
-            <article>
-              <header class="post-item-header">
-                <h2 class="post-item-title">
-                  <a href={`/blog/${post.slug}`}>{post.data.title}</a>
-                </h2>
-                <div class="post-item-meta">
-                  <time datetime={post.data.pubDate.toISOString()}>
-                    {formatDate(post.data.pubDate)}
-                  </time>
-                  {post.data.tags && post.data.tags.length > 0 && (
-                    <span>· {post.data.tags.length} 个标签</span>
-                  )}
-                </div>
-              </header>
-              <p class="post-item-description">{post.data.description}</p>
-              {post.data.tags && post.data.tags.length > 0 && (
-                <div class="tags">
-                  {post.data.tags.map((tag) => (
-                    <a href={`/tags/${tag}`} class="tag">#{tag}</a>
-                  ))}
-                </div>
-              )}
-            </article>
-          </li>
-        ))}
-      </ul>
-
-      {posts.length === 0 && (
-        <p style="text-align: center; color: var(--color-text-muted); padding: 2rem 0;">
-          暂无文章，敬请期待。
+    {/* Hero 区域 */}
+    <section class="hero">
+      <div class="hero-bg" data-parallax data-parallax-speed="0.08"></div>
+      <div class="hero-content">
+        <span class="hero-eyebrow reveal">素记 · Plain Blog</span>
+        <h1 class="hero-title text-split">用心记录<br/>每一个想法</h1>
+        <p class="hero-subtitle reveal" data-delay="200">
+          在这里，记录关于技术、阅读与生活的思考。追求简洁，珍视深度。
         </p>
-      )}
+        <div class="hero-stats reveal" data-delay="400">
+          <div class="hero-stat">
+            <span class="hero-stat-number count-up" data-target={posts.length}>0</span>
+            <span class="hero-stat-label">篇文章</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-number count-up" data-target={tags.length}>0</span>
+            <span class="hero-stat-label">个标签</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-number count-up" data-target={categories.length - 1}>0</span>
+            <span class="hero-stat-label">个分类</span>
+          </div>
+        </div>
+      </div>
     </section>
+
+    {/* 分类筛选 */}
+    <div class="category-bar reveal" style="margin-top: var(--space-2xl);">
+      {categories.map((cat, i) => (
+        <button class={`category-btn ${i === 0 ? 'active' : ''}`} data-category={cat}>
+          {cat}
+        </button>
+      ))}
+    </div>
+
+    {/* 瀑布流文章卡片 */}
+    <div class="masonry-grid" id="masonryGrid">
+      {restPosts.map((post, i) => (
+        <article class="post-card tilt-card reveal" data-category={post.data.category || '未分类'} data-delay={(i % 6) * 80}>
+          <a href={`/blog/${post.slug}`} style="text-decoration: none; color: inherit;">
+            <div class="card-cover-wrap">
+              <img
+                class="card-cover"
+                src={getCover(post)}
+                alt={post.data.coverAlt || post.data.title}
+                loading="lazy"
+              />
+            </div>
+            <div class="card-body">
+              {post.data.category && (
+                <span class="card-category">{post.data.category}</span>
+              )}
+              <h3 class="card-title">{post.data.title}</h3>
+              <p class="card-excerpt">{post.data.description}</p>
+              <div class="card-footer">
+                <time datetime={post.data.pubDate.toISOString()}>
+                  {formatDate(post.data.pubDate)}
+                </time>
+                {post.data.tags && post.data.tags.length > 0 && (
+                  <div class="tags" style="gap: 4px;">
+                    {post.data.tags.slice(0, 2).map((tag) => (
+                      <span class="tag" style="font-size: 0.7rem; padding: 2px 8px;">#{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </a>
+        </article>
+      ))}
+    </div>
+
+    {posts.length === 0 && (
+      <p style="text-align: center; color: var(--text-tertiary); padding: 4rem 0;">
+        暂无文章，敬请期待。
+      </p>
+    )}
+
+    {/* 标签云 */}
+    {tags.length > 0 && (
+      <section class="magazine-layout" style="padding-top: var(--space-2xl);">
+        <div class="section-header reveal">
+          <h2 class="section-title">探索标签</h2>
+          <a href="/tags" class="section-link">查看全部 →</a>
+        </div>
+        <div class="tag-cloud stagger">
+          {tags.map(([tag, count]) => (
+            <a href={`/tags/${tag}`} class="tag">
+              #{tag} <span style="opacity: 0.6;">({count})</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
   </main>
   <Footer />
 </BaseLayout>
+
+<script>
+  // 分类筛选
+  const buttons = document.querySelectorAll('.category-btn');
+  const cards = document.querySelectorAll('#masonryGrid .post-card');
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const category = btn.getAttribute('data-category');
+
+      // 更新按钮状态
+      buttons.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // 筛选卡片
+      cards.forEach((card) => {
+        const cardCategory = card.getAttribute('data-category');
+        if (category === '全部' || cardCategory === category) {
+          card.style.display = '';
+          // 重新触发动画
+          card.classList.remove('revealed');
+          requestAnimationFrame(() => {
+            card.classList.add('revealed');
+          });
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+</script>

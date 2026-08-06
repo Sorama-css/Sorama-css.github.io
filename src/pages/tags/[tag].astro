@@ -20,54 +20,53 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft && data.tag
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
 const formatDate = (date: Date) =>
-  date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const getCover = (post: typeof posts[0]) =>
+  post.data.cover || `https://picsum.photos/seed/${encodeURIComponent(post.slug)}/600/400`;
 ---
 
 <BaseLayout title={`标签: ${tag}`} description={`所有标记为 ${tag} 的文章`}>
   <Header />
   <main id="main-content">
-    <a href="/tags" class="back-link animate-fade-in">← 所有标签</a>
+    <a href="/tags" class="back-link" style="max-width: var(--max-width); margin: var(--space-xl) auto 0; display: inline-flex; padding-left: var(--space-xl);">← 所有标签</a>
 
-    <header class="page-header animate-fade-in-up">
+    <header class="page-header reveal">
       <h1>
-        <span class="tag" style="font-size: 1rem; padding: 4px 14px;">#{tag}</span>
+        <span class="tag" style="font-size: 1.2rem; padding: 6px 20px;">#{tag}</span>
       </h1>
       <p>共 {posts.length} 篇文章</p>
     </header>
 
-    <ul class="post-list stagger">
-      {posts.map((post) => (
-        <li class="post-item">
-          <article>
-            <header class="post-item-header">
-              <h2 class="post-item-title">
-                <a href={`/blog/${post.slug}`}>{post.data.title}</a>
-              </h2>
-              <div class="post-item-meta">
-                <time datetime={post.data.pubDate.toISOString()}>
-                  {formatDate(post.data.pubDate)}
-                </time>
+    <div class="masonry-grid">
+      {posts.map((post, i) => (
+        <article class="post-card tilt-card reveal" data-delay={(i % 6) * 80}>
+          <a href={`/blog/${post.slug}`} style="text-decoration: none; color: inherit;">
+            <div class="card-cover-wrap">
+              <img class="card-cover" src={getCover(post)} alt={post.data.title} loading="lazy" />
+            </div>
+            <div class="card-body">
+              {post.data.category && <span class="card-category">{post.data.category}</span>}
+              <h3 class="card-title">{post.data.title}</h3>
+              <p class="card-excerpt">{post.data.description}</p>
+              <div class="card-footer">
+                <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+                {post.data.tags && post.data.tags.length > 0 && (
+                  <div class="tags" style="gap: 4px;">
+                    {post.data.tags.slice(0, 2).map((t) => (
+                      <span class="tag" style="font-size: 0.7rem; padding: 2px 8px;">#{t}</span>
+                    ))}
+                  </div>
+                )}
               </div>
-            </header>
-            <p class="post-item-description">{post.data.description}</p>
-            {post.data.tags && post.data.tags.length > 0 && (
-              <div class="tags">
-                {post.data.tags.map((t) => (
-                  <a href={`/tags/${t}`} class="tag">#{t}</a>
-                ))}
-              </div>
-            )}
-          </article>
-        </li>
+            </div>
+          </a>
+        </article>
       ))}
-    </ul>
+    </div>
 
     {posts.length === 0 && (
-      <p style="text-align: center; color: var(--color-text-muted); padding: 2rem 0;">
+      <p style="text-align: center; color: var(--text-tertiary); padding: 4rem 0;">
         该标签下暂无文章。
       </p>
     )}

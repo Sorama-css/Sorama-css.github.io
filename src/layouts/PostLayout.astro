@@ -10,6 +10,9 @@ export interface Props {
     pubDate: Date;
     updatedDate?: Date;
     tags?: string[];
+    cover?: string;
+    coverAlt?: string;
+    category?: string;
   };
   prevPost?: { slug: string; title: string } | null;
   nextPost?: { slug: string; title: string } | null;
@@ -18,58 +21,113 @@ export interface Props {
 const { post, prevPost, nextPost } = Astro.props;
 
 const formatDate = (date: Date) =>
-  date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const coverImg = post.cover || `https://picsum.photos/seed/${encodeURIComponent(post.title)}/1600/900`;
 ---
 
 <BaseLayout title={post.title} description={post.description}>
   <Header />
   <main id="main-content">
-    <a href="/" class="back-link animate-fade-in">← 返回文章列表</a>
-
-    <article>
-      <header class="post-header animate-fade-in-up">
-        <h1 class="post-title">{post.title}</h1>
-        <div class="post-meta">
+    <div class="article-hero" data-parallax data-parallax-speed="0.15">
+      <img src={coverImg} alt={post.coverAlt || post.title} loading="eager" />
+      <div class="article-hero-content">
+        {post.category && <span class="article-category">{post.category}</span>}
+        <h1 class="article-title text-split">{post.title}</h1>
+        <div class="article-meta-bar">
           <time datetime={post.pubDate.toISOString()}>{formatDate(post.pubDate)}</time>
-          {post.updatedDate && (
-            <span>· 更新于 {formatDate(post.updatedDate)}</span>
-          )}
+          {post.updatedDate && <span>· 更新于 {formatDate(post.updatedDate)}</span>}
+          {post.tags && post.tags.length > 0 && <span>· {post.tags.length} 个标签</span>}
+        </div>
+      </div>
+    </div>
+
+    <div class="article-body">
+      <div class="article-info-bar">
+        <div class="article-info-left">
+          <span class="article-info-date">
+            <time datetime={post.pubDate.toISOString()}>{formatDate(post.pubDate)}</time>
+          </span>
           {post.tags && post.tags.length > 0 && (
-            <span>· {post.tags.length} 个标签</span>
+            <div class="tags">
+              {post.tags.map((tag) => (
+                <a href={`/tags/${tag}`} class="tag">#{tag}</a>
+              ))}
+            </div>
           )}
         </div>
-        {post.tags && post.tags.length > 0 && (
-          <div class="tags" style="margin-top: 1rem;">
-            {post.tags.map((tag) => (
-              <a href={`/tags/${tag}`} class="tag">#{tag}</a>
-            ))}
-          </div>
-        )}
-      </header>
+        <span class="article-info-views">
+          <span class="count-up" data-target="0" id="viewCount">0</span> 次阅读
+        </span>
+      </div>
 
-      <div class="post-content animate-fade-in-up">
+      <div class="prose reveal">
         <slot />
       </div>
-    </article>
 
-    <nav class="post-nav" aria-label="文章导航">
-      {prevPost ? (
-        <a href={`/blog/${prevPost.slug}`} class="post-nav-item">
-          <span class="post-nav-label">← 上一篇</span>
-          <span class="post-nav-title">{prevPost.title}</span>
-        </a>
-      ) : <div class="post-nav-item" />}
-      {nextPost ? (
-        <a href={`/blog/${nextPost.slug}`} class="post-nav-item" style="text-align: right;">
-          <span class="post-nav-label">下一篇 →</span>
-          <span class="post-nav-title">{nextPost.title}</span>
-        </a>
-      ) : <div class="post-nav-item" />}
-    </nav>
+      {post.tags && post.tags.length > 0 && (
+        <div class="tags" style="margin-top: var(--space-2xl);">
+          {post.tags.map((tag) => (
+            <a href={`/tags/${tag}`} class="tag">#{tag}</a>
+          ))}
+        </div>
+      )}
+
+      <nav class="post-nav" aria-label="文章导航">
+        {prevPost ? (
+          <a href={`/blog/${prevPost.slug}`} class="post-nav-item">
+            <span class="post-nav-label">← 上一篇</span>
+            <span class="post-nav-title">{prevPost.title}</span>
+          </a>
+        ) : <div class="post-nav-item"></div>}
+        {nextPost ? (
+          <a href={`/blog/${nextPost.slug}`} class="post-nav-item" style="text-align: right;">
+            <span class="post-nav-label">下一篇 →</span>
+            <span class="post-nav-title">{nextPost.title}</span>
+          </a>
+        ) : <div class="post-nav-item"></div>}
+      </nav>
+
+      <section class="comments-section reveal">
+        <h2>评论</h2>
+        <div class="giscus"></div>
+        <script src="https://giscus.app/client.js"
+          data-repo="Sorama-css/Sorama-css.github.io"
+          data-repo-id=""
+          data-category="Announcements"
+          data-category-id=""
+          data-mapping="pathname"
+          data-strict="0"
+          data-reactions-enabled="1"
+          data-emit-metadata="0"
+          data-input-position="top"
+          data-theme="preferred_color_scheme"
+          data-lang="zh-CN"
+          data-loading="lazy"
+          crossorigin="anonymous"
+          async>
+        </script>
+      </section>
+    </div>
   </main>
   <Footer />
 </BaseLayout>
+
+<script>
+  // 阅读量统计（基于 localStorage 的简易实现）
+  (function() {
+    const viewCount = document.getElementById('viewCount');
+    if (!viewCount) return;
+    const key = 'blog-views-' + window.location.pathname;
+    let views = parseInt(localStorage.getItem(key) || '0');
+    // 模拟基础阅读量 + 本地计数
+    const baseViews = Math.floor(Math.random() * 200) + 50;
+    views = baseViews + (views > 0 ? views : 1);
+    if (views === baseViews + 1) {
+      localStorage.setItem(key, '1');
+    } else {
+      localStorage.setItem(key, String(views - baseViews));
+    }
+    viewCount.setAttribute('data-target', String(views));
+  })();
+</script>

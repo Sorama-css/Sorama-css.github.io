@@ -1,13 +1,124 @@
 ---
+import { getCollection } from 'astro:content';
+
 const year = new Date().getFullYear();
+
+// 收集分类
+const posts = await getCollection('blog', ({ data }) => !data.draft);
+const categories = Array.from(new Set(posts.map((p) => p.data.category).filter(Boolean)));
+
+// 收集热门标签（前6个）
+const tagMap = new Map<string, number>();
+posts.forEach((post) => {
+  post.data.tags?.forEach((tag) => {
+    tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
+  });
+});
+const topTags = Array.from(tagMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
 ---
 
 <footer class="site-footer">
   <div class="site-footer-inner">
-    <p>&copy; {year} 素记 · 用心记录每一个想法</p>
-    <div class="footer-links">
-      <a href="/rss.xml">RSS</a>
-      <a href="/sitemap.xml">Sitemap</a>
+    <div class="footer-col footer-brand-col">
+      <div class="footer-brand">
+        <span class="logo-mark" style="display: inline-flex; width: 32px; height: 32px; border-radius: 4px; background: linear-gradient(135deg, var(--morandi-clay), var(--morandi-rose)); color: white; font-weight: 700; align-items: center; justify-content: center; font-size: 0.95rem; margin-right: 8px; vertical-align: middle;">素</span>
+        素记 · Plain Blog
+      </div>
+      <p class="footer-text">用心记录每一个想法。<br/>追求简洁，珍视深度。</p>
+    </div>
+
+    {categories.length > 0 && (
+      <div class="footer-col">
+        <h4 class="footer-heading">分类</h4>
+        <ul class="footer-list">
+          {categories.map((cat) => (
+            <li><a href="/">{cat}</a></li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {topTags.length > 0 && (
+      <div class="footer-col">
+        <h4 class="footer-heading">热门标签</h4>
+        <div class="footer-tags">
+          {topTags.map(([tag]) => (
+            <a href={`/tags/${tag}`} class="tag" style="font-size: 0.75rem;">#{tag}</a>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <div class="footer-col">
+      <h4 class="footer-heading">链接</h4>
+      <ul class="footer-list">
+        <li><a href="/rss.xml">RSS 订阅</a></li>
+        <li><a href="/sitemap.xml">站点地图</a></li>
+        <li><a href="https://github.com/Sorama-css" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
     </div>
   </div>
+  <div class="footer-bottom">
+    <p class="footer-text">&copy; {year} Sorama · Built with Astro</p>
+  </div>
 </footer>
+
+<style>
+  .site-footer-inner {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: var(--space-xl);
+    max-width: var(--max-width-wide);
+    margin: 0 auto;
+    padding: var(--space-2xl) var(--space-xl) var(--space-lg);
+  }
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .footer-heading {
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-xs);
+  }
+  .footer-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  .footer-list a {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    transition: color var(--transition-fast);
+  }
+  .footer-list a:hover {
+    color: var(--accent);
+  }
+  .footer-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+  .footer-bottom {
+    text-align: center;
+    padding: var(--space-md) var(--space-xl);
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 768px) {
+    .site-footer-inner {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-lg);
+    }
+  }
+  @media (max-width: 480px) {
+    .site-footer-inner {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

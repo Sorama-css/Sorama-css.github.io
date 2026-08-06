@@ -2,41 +2,99 @@
 const currentPath = Astro.url.pathname;
 const isActive = (path: string) =>
   path === '/' ? currentPath === '/' : currentPath.startsWith(path);
+
+const navItems = [
+  { href: '/', label: '首页' },
+  { href: '/tags', label: '标签' },
+  { href: '/search', label: '搜索' },
+  { href: '/rss.xml', label: 'RSS' },
+];
 ---
 
 <header class="site-header">
   <div class="site-header-inner">
-    <a href="/" class="site-title">素记</a>
+    <a href="/" class="site-logo">
+      <span class="logo-mark">素</span>
+      <span>素记</span>
+    </a>
     <nav class="site-nav" aria-label="主导航">
-      <a href="/" aria-current={isActive('/') ? 'page' : undefined}>首页</a>
-      <a href="/tags" aria-current={isActive('/tags') ? 'page' : undefined}>标签</a>
-      <a href="/search" aria-current={isActive('/search') ? 'page' : undefined}>搜索</a>
-      <a href="/rss.xml" title="RSS 订阅">RSS</a>
+      {navItems.map((item) => (
+        <a
+          href={item.href}
+          aria-current={isActive(item.href) ? 'page' : undefined}
+        >
+          {item.label}
+        </a>
+      ))}
       <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
         <span id="themeIcon">🌙</span>
       </button>
     </nav>
+    <button class="menu-toggle" id="menuToggle" aria-label="打开菜单" aria-expanded="false">
+      ☰
+    </button>
   </div>
+  <nav class="mobile-nav" id="mobileNav" aria-label="移动端导航">
+    {navItems.map((item) => (
+      <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+        {item.label}
+      </a>
+    ))}
+    <button class="theme-toggle" id="themeToggleMobile" aria-label="切换主题" style="align-self: flex-start;">
+      <span id="themeIconMobile">🌙</span>
+    </button>
+  </nav>
 </header>
 
 <script>
-  // 主题切换
-  const toggle = document.getElementById('themeToggle');
-  const icon = document.getElementById('themeIcon');
-  const root = document.documentElement;
+  // 深色模式切换
+  function setupThemeToggle(toggleId, iconId) {
+    const toggle = document.getElementById(toggleId);
+    const icon = document.getElementById(iconId);
+    const root = document.documentElement;
 
-  // 初始化主题
-  const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initialTheme = saved || (prefersDark ? 'dark' : 'light');
-  root.setAttribute('data-theme', initialTheme);
-  icon.textContent = initialTheme === 'dark' ? '☀️' : '🌙';
+    function updateIcon() {
+      const theme = root.getAttribute('data-theme');
+      if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
 
-  toggle?.addEventListener('click', () => {
-    const current = root.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    icon.textContent = next === 'dark' ? '☀️' : '🌙';
+    updateIcon();
+
+    toggle?.addEventListener('click', () => {
+      const current = root.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      // 同步两个切换按钮的图标
+      updateIcon();
+      const otherIcon = document.getElementById(
+        iconId === 'themeIcon' ? 'themeIconMobile' : 'themeIcon'
+      );
+      if (otherIcon) otherIcon.textContent = next === 'dark' ? '☀️' : '🌙';
+    });
+  }
+
+  setupThemeToggle('themeToggle', 'themeIcon');
+  setupThemeToggle('themeToggleMobile', 'themeIconMobile');
+
+  // 移动端菜单
+  const menuToggle = document.getElementById('menuToggle');
+  const mobileNav = document.getElementById('mobileNav');
+
+  menuToggle?.addEventListener('click', () => {
+    const isOpen = mobileNav?.classList.toggle('open');
+    menuToggle.setAttribute('aria-expanded', String(isOpen));
+    menuToggle.textContent = isOpen ? '✕' : '☰';
+  });
+
+  // 点击导航链接后关闭移动端菜单
+  mobileNav?.querySelectorAll('a').forEach((a) => {
+    a.addEventListener('click', () => {
+      mobileNav.classList.remove('open');
+      if (menuToggle) {
+        menuToggle.setAttribute('aria-expanded', 'false');
+        menuToggle.textContent = '☰';
+      }
+    });
   });
 </script>
