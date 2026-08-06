@@ -6,8 +6,8 @@ export async function GET(context) {
     .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
   return rss({
-    title: '素记 · Plain Blog',
-    description: '一个极简的静态博客，用心记录每一个想法',
+    title: 'Soramad的个人博客',
+    description: '用心记录每一个想法',
     site: context.site,
     items: posts.map((post) => ({
       title: post.data.title,

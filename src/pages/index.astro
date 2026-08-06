@@ -35,14 +35,14 @@ const featured = posts.find((p) => p.data.featured) || posts[0];
 const restPosts = posts.filter((p) => p !== featured);
 ---
 
-<BaseLayout title="首页" description="素记 — 一个极简的静态博客，用心记录每一个想法">
+<BaseLayout title="首页" description="Soramad的个人博客 — 用心记录每一个想法">
   <Header />
   <main id="main-content">
     {/* Hero 区域 */}
     <section class="hero">
       <div class="hero-bg" data-parallax data-parallax-speed="0.08"></div>
       <div class="hero-content">
-        <span class="hero-eyebrow reveal">素记 · Plain Blog</span>
+        <span class="hero-eyebrow reveal">Soramad的个人博客</span>
         <h1 class="hero-title text-split">用心记录<br/>每一个想法</h1>
         <p class="hero-subtitle reveal" data-delay="200">
           在这里，记录关于技术、阅读与生活的思考。追求简洁，珍视深度。

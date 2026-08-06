@@ -1,6 +1,6 @@
 ---
-title: 你好，素记
-description: 这是博客的第一篇文章，介绍素记的由来与写作理念。
+title: 你好，Soramad
+description: 这是博客的第一篇文章，介绍Soramad的个人博客的由来与写作理念。
 pubDate: 2024-01-15
 tags: [随笔, 介绍]
 cover: https://picsum.photos/seed/hello-world/600/400
