@@ -1,0 +1,170 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const searchIndex = posts.map((post) => ({
+  slug: post.slug,
+  title: post.data.title,
+  description: post.data.description,
+  tags: post.data.tags || [],
+  pubDate: post.data.pubDate.toISOString(),
+}));
+
+const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+---
+
+<BaseLayout title="搜索" description="在博客中搜索文章">
+  <Header />
+  <main id="main-content">
+    <header class="page-header animate-fade-in-up">
+      <h1>搜索文章</h1>
+      <p>在 {posts.length} 篇文章中查找感兴趣的内容</p>
+    </header>
+
+    <div class="search-container">
+      <input
+        type="search"
+        id="searchInput"
+        class="search-input"
+        placeholder="输入关键词搜索标题、描述或标签..."
+        autocomplete="off"
+        autofocus
+      />
+    </div>
+
+    <div id="searchResults" class="search-results">
+      <p style="color: var(--color-text-muted); text-align: center; padding: 1rem;">
+        输入关键词开始搜索
+      </p>
+    </div>
+
+    <section id="allPosts" style="margin-top: var(--space-2xl);">
+      <h2 style="font-family: var(--font-serif); font-size: 1.2rem; margin-bottom: var(--space-lg);">全部文章</h2>
+      <ul class="post-list stagger">
+        {posts.map((post) => (
+          <li class="post-item">
+            <article>
+              <h3 class="post-item-title" style="font-size: 1.1rem;">
+                <a href={`/blog/${post.slug}`}>{post.data.title}</a>
+              </h3>
+              <div class="post-item-meta">
+                <time datetime={post.data.pubDate.toISOString()}>
+                  {formatDate(post.data.pubDate.toISOString())}
+                </time>
+              </div>
+              <p class="post-item-description">{post.data.description}</p>
+            </article>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<script define:vars={{ searchData: searchIndex }}>
+  interface SearchDoc {
+    slug: string;
+    title: string;
+    description: string;
+    tags: string[];
+    pubDate: string;
+  }
+
+  const searchData: SearchDoc[] = searchData as SearchDoc[];
+
+  const input = document.getElementById('searchInput') as HTMLInputElement;
+  const resultsEl = document.getElementById('searchResults')!;
+  const allPostsEl = document.getElementById('allPosts')!;
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+  function highlight(text: string, query: string): string {
+    if (!query) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+  }
+
+  function search(query: string): SearchDoc[] {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+
+    return searchData.filter((doc) => {
+      const haystack = [
+        doc.title,
+        doc.description,
+        ...doc.tags,
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+
+  function renderResults(query: string, results: SearchDoc[]) {
+    if (!query.trim()) {
+      resultsEl.innerHTML = '<p style="color: var(--color-text-muted); text-align: center; padding: 1rem;">输入关键词开始搜索</p>';
+      allPostsEl.style.display = '';
+      return;
+    }
+
+    allPostsEl.style.display = 'none';
+
+    if (results.length === 0) {
+      resultsEl.innerHTML = `
+        <div class="no-results">
+          <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">未找到相关文章</p>
+          <p style="font-size: 0.9rem;">尝试使用其他关键词搜索</p>
+        </div>
+      `;
+      return;
+    }
+
+    resultsEl.innerHTML = `
+      <p style="color: var(--color-text-muted); margin-bottom: var(--space-lg);">
+        找到 ${results.length} 篇相关文章
+      </p>
+      ${results.map((doc) => `
+        <article class="search-result-item">
+          <h3><a href="/blog/${doc.slug}">${highlight(doc.title, query)}</a></h3>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);">
+            ${formatDate(doc.pubDate)}
+            ${doc.tags.length > 0 ? ` · ${doc.tags.map((t) => `#${t}`).join(' ')}` : ''}
+          </p>
+          <p>${highlight(doc.description, query)}</p>
+        </article>
+      `).join('')}
+    `;
+  }
+
+  let debounceTimer: ReturnType<typeof setTimeout>;
+  input?.addEventListener('input', (e) => {
+    const target = e.target as HTMLInputElement;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const results = search(target.value);
+      renderResults(target.value, results);
+    }, 150);
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const qParam = params.get('q');
+  if (qParam) {
+    input.value = qParam;
+    const results = search(qParam);
+    renderResults(qParam, results);
+  }
+</script>
