@@ -1,0 +1,42 @@
+---
+const currentPath = Astro.url.pathname;
+const isActive = (path: string) =>
+  path === '/' ? currentPath === '/' : currentPath.startsWith(path);
+---
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a href="/" class="site-title">素记</a>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="/" aria-current={isActive('/') ? 'page' : undefined}>首页</a>
+      <a href="/tags" aria-current={isActive('/tags') ? 'page' : undefined}>标签</a>
+      <a href="/search" aria-current={isActive('/search') ? 'page' : undefined}>搜索</a>
+      <a href="/rss.xml" title="RSS 订阅">RSS</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<script>
+  // 主题切换
+  const toggle = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
+  const root = document.documentElement;
+
+  // 初始化主题
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const initialTheme = saved || (prefersDark ? 'dark' : 'light');
+  root.setAttribute('data-theme', initialTheme);
+  icon.textContent = initialTheme === 'dark' ? '☀️' : '🌙';
+
+  toggle?.addEventListener('click', () => {
+    const current = root.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    icon.textContent = next === 'dark' ? '☀️' : '🌙';
+  });
+</script>
