@@ -10,14 +10,14 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
 const formatDate = (date: Date) =>
   date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 
-// 收集所有分类
+// 分类
 const categorySet = new Set<string>();
 posts.forEach((post) => {
   if (post.data.category) categorySet.add(post.data.category);
 });
-const categories = ['全部', ...Array.from(categorySet)];
+const categories = Array.from(categorySet);
 
-// 收集所有标签
+// 标签
 const tagMap = new Map<string, number>();
 posts.forEach((post) => {
   post.data.tags?.forEach((tag) => {
@@ -26,20 +26,41 @@ posts.forEach((post) => {
 });
 const tags = Array.from(tagMap.entries()).sort((a, b) => b[1] - a[1]);
 
-// 获取封面图（无封面时使用 picsum 随机图）
+// 封面图
 const getCover = (post: typeof posts[0]) =>
   post.data.cover || `https://picsum.photos/seed/${encodeURIComponent(post.slug)}/600/400`;
 
-// 特色文章（第一篇或有 featured 标记的）
-const featured = posts.find((p) => p.data.featured) || posts[0];
-const restPosts = posts.filter((p) => p !== featured);
+// ===== 罗马数字钟面数据生成 =====
+const clockNumerals = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+const numeralR = 72;
+const numeralPositions = clockNumerals.map((num, i) => {
+  const angle = i * 30;
+  const rad = (angle - 90) * Math.PI / 180;
+  return { num, x: (numeralR * Math.cos(rad)).toFixed(1), y: (numeralR * Math.sin(rad)).toFixed(1) };
+});
+
+// 刻度线（60条，每6度一条）
+const tickMarks = Array.from({ length: 60 }, (_, i) => {
+  const angle = i * 6;
+  const rad = (angle - 90) * Math.PI / 180;
+  const isHour = i % 5 === 0;
+  const r1 = isHour ? 82 : 86;
+  const r2 = 90;
+  return {
+    x1: (r1 * Math.cos(rad)).toFixed(1),
+    y1: (r1 * Math.sin(rad)).toFixed(1),
+    x2: (r2 * Math.cos(rad)).toFixed(1),
+    y2: (r2 * Math.sin(rad)).toFixed(1),
+    isHour,
+  };
+});
 ---
 
 <BaseLayout title="首页" description="Soramad的个人博客 — 用心记录每一个想法">
   <Header />
   <main id="main-content">
-    {/* Hero 区域 */}
-    <section class="hero">
+    {/* ===== 封面区域：占据整个屏幕 ===== */}
+    <section class="hero hero-cover">
       <div class="hero-bg" data-parallax data-parallax-speed="0.08"></div>
       <div class="hero-content">
         <span class="hero-eyebrow reveal">Soramad的个人博客</span>
@@ -57,142 +78,355 @@ const restPosts = posts.filter((p) => p !== featured);
             <span class="hero-stat-label">个标签</span>
           </div>
           <div class="hero-stat">
-            <span class="hero-stat-number count-up" data-target={categories.length - 1}>0</span>
+            <span class="hero-stat-number count-up" data-target={categories.length}>0</span>
             <span class="hero-stat-label">个分类</span>
           </div>
         </div>
       </div>
+      <div class="scroll-hint reveal" data-delay="600">
+        <span>向下滚动探索文章</span>
+        <span class="scroll-arrow"></span>
+      </div>
     </section>
 
-    {/* 分类筛选 */}
-    <div class="category-bar reveal" style="margin-top: var(--space-2xl);">
-      {categories.map((cat, i) => (
-        <button class={`category-btn ${i === 0 ? 'active' : ''}`} data-category={cat}>
-          {cat}
-        </button>
-      ))}
-    </div>
-
-    {/* 瀑布流文章卡片 */}
-    <div class="masonry-grid" id="masonryGrid">
-      {restPosts.map((post, i) => (
-        <article class="post-card tilt-card reveal" data-category={post.data.category || '未分类'} data-delay={(i % 6) * 80}>
-          <a href={`/blog/${post.slug}`} style="text-decoration: none; color: inherit;">
-            <div class="card-cover-wrap">
-              <img
-                class="card-cover"
-                src={getCover(post)}
-                alt={post.data.coverAlt || post.data.title}
-                loading="lazy"
-              />
+    {/* ===== 博客浏览区域：暗色背景 + 钟面轮播 ===== */}
+    <section class="blog-section" id="blogSection">
+      <div class="blog-layout">
+        {/* 左侧圆角侧栏 */}
+        <aside class="blog-sidebar">
+          <div class="sidebar-section">
+            <h3 class="sidebar-title">标签</h3>
+            <div class="sidebar-tags">
+              {tags.map(([tag, count]) => (
+                <a href={`/tags/${tag}`} class="sidebar-tag">
+                  #{tag}<span class="tag-count">{count}</span>
+                </a>
+              ))}
             </div>
-            <div class="card-body">
-              {post.data.category && (
-                <span class="card-category">{post.data.category}</span>
-              )}
-              <h3 class="card-title">{post.data.title}</h3>
-              <p class="card-excerpt">{post.data.description}</p>
-              <div class="card-footer">
-                <time datetime={post.data.pubDate.toISOString()}>
-                  {formatDate(post.data.pubDate)}
-                </time>
-                {post.data.tags && post.data.tags.length > 0 && (
-                  <div class="tags" style="gap: 4px;">
-                    {post.data.tags.slice(0, 2).map((tag) => (
-                      <span class="tag" style="font-size: 0.7rem; padding: 2px 8px;">#{tag}</span>
-                    ))}
-                  </div>
-                )}
+          </div>
+          <div class="sidebar-section">
+            <h3 class="sidebar-title">分类</h3>
+            <div class="sidebar-categories">
+              {categories.map((cat) => (
+                <span class="sidebar-category">{cat}</span>
+              ))}
+            </div>
+          </div>
+          <div class="sidebar-section">
+            <h3 class="sidebar-title">统计</h3>
+            <div class="sidebar-stats">
+              <div class="sidebar-stat">
+                <span class="sidebar-stat-num">{posts.length}</span>
+                <span class="sidebar-stat-label">篇文章</span>
+              </div>
+              <div class="sidebar-stat">
+                <span class="sidebar-stat-num">{tags.length}</span>
+                <span class="sidebar-stat-label">个标签</span>
               </div>
             </div>
-          </a>
-        </article>
-      ))}
-    </div>
+          </div>
+        </aside>
 
-    {posts.length === 0 && (
-      <p style="text-align: center; color: var(--text-tertiary); padding: 4rem 0;">
-        暂无文章，敬请期待。
-      </p>
-    )}
+        {/* 右侧博客展示区（含双钟面） */}
+        <div class="blog-display" id="blogDisplay">
+          {/* 左钟面 */}
+          <div class="clock-wrapper clock-left">
+            <svg viewBox="-100 -100 200 200" class="clock-svg" aria-hidden="true">
+              <defs>
+                <filter id="glowLeft" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <circle cx="0" cy="0" r="95" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+              <circle cx="0" cy="0" r="90" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5" />
+              {tickMarks.map((tick) => (
+                <line
+                  x1={tick.x1} y1={tick.y1} x2={tick.x2} y2={tick.y2}
+                  stroke={tick.isHour ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)'}
+                  stroke-width={tick.isHour ? 1.5 : 0.5}
+                  filter="url(#glowLeft)"
+                />
+              ))}
+              {numeralPositions.map(({ num, x, y }) => (
+                <text
+                  x={x} y={y}
+                  text-anchor="middle" dominant-baseline="central"
+                  fill="rgba(255,255,255,0.85)"
+                  font-size="10" font-family="serif" font-weight="600"
+                  filter="url(#glowLeft)"
+                >{num}</text>
+              ))}
+              <g class="clock-hands" id="clockHandsLeft" style="transform-origin: 0 0;">
+                <line x1="0" y1="8" x2="0" y2="-45" stroke="white" stroke-width="3" stroke-linecap="round" filter="url(#glowLeft)" />
+                <line x1="0" y1="10" x2="0" y2="-65" stroke="white" stroke-width="2" stroke-linecap="round" filter="url(#glowLeft)" />
+                <line x1="0" y1="15" x2="0" y2="-75" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-linecap="round" filter="url(#glowLeft)" />
+                <circle cx="0" cy="0" r="3" fill="white" filter="url(#glowLeft)" />
+              </g>
+            </svg>
+          </div>
 
-    {/* 标签云 */}
-    {tags.length > 0 && (
-      <section class="magazine-layout" style="padding-top: var(--space-2xl);">
-        <div class="section-header reveal">
-          <h2 class="section-title">探索标签</h2>
-          <a href="/tags" class="section-link">查看全部 →</a>
+          {/* 博客卡片轮播（圆周排列） */}
+          <div class="blog-carousel" id="blogCarousel">
+            {posts.map((post, i) => (
+              <article
+                class="carousel-card"
+                data-index={i}
+                style={`--card-index: ${i}; --total-cards: ${posts.length};`}
+              >
+                <a href={`/blog/${post.slug}`} class="carousel-card-link">
+                  <div class="carousel-card-cover">
+                    <img src={getCover(post)} alt={post.data.title} loading="lazy" />
+                  </div>
+                  <div class="carousel-card-body">
+                    {post.data.category && (
+                      <span class="carousel-card-category">{post.data.category}</span>
+                    )}
+                    <h3 class="carousel-card-title">{post.data.title}</h3>
+                    <p class="carousel-card-excerpt">{post.data.description}</p>
+                    <div class="carousel-card-meta">
+                      <time datetime={post.data.pubDate.toISOString()}>
+                        {formatDate(post.data.pubDate)}
+                      </time>
+                    </div>
+                  </div>
+                </a>
+              </article>
+            ))}
+          </div>
+
+          {/* 右钟面（镜像旋转） */}
+          <div class="clock-wrapper clock-right">
+            <svg viewBox="-100 -100 200 200" class="clock-svg" aria-hidden="true">
+              <defs>
+                <filter id="glowRight" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <circle cx="0" cy="0" r="95" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+              <circle cx="0" cy="0" r="90" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.5" />
+              {tickMarks.map((tick) => (
+                <line
+                  x1={tick.x1} y1={tick.y1} x2={tick.x2} y2={tick.y2}
+                  stroke={tick.isHour ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)'}
+                  stroke-width={tick.isHour ? 1.5 : 0.5}
+                  filter="url(#glowRight)"
+                />
+              ))}
+              {numeralPositions.map(({ num, x, y }) => (
+                <text
+                  x={x} y={y}
+                  text-anchor="middle" dominant-baseline="central"
+                  fill="rgba(255,255,255,0.85)"
+                  font-size="10" font-family="serif" font-weight="600"
+                  filter="url(#glowRight)"
+                >{num}</text>
+              ))}
+              <g class="clock-hands" id="clockHandsRight" style="transform-origin: 0 0;">
+                <line x1="0" y1="8" x2="0" y2="-45" stroke="white" stroke-width="3" stroke-linecap="round" filter="url(#glowRight)" />
+                <line x1="0" y1="10" x2="0" y2="-65" stroke="white" stroke-width="2" stroke-linecap="round" filter="url(#glowRight)" />
+                <line x1="0" y1="15" x2="0" y2="-75" stroke="rgba(255,255,255,0.7)" stroke-width="1" stroke-linecap="round" filter="url(#glowRight)" />
+                <circle cx="0" cy="0" r="3" fill="white" filter="url(#glowRight)" />
+              </g>
+            </svg>
+          </div>
+
+          {/* 进度指示器 */}
+          <div class="carousel-progress" id="carouselProgress">
+            <div class="progress-track">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-label" id="progressLabel">1 / {posts.length}</div>
+          </div>
+
+          {/* 操作提示 */}
+          <div class="carousel-hint" id="carouselHint">滚动鼠标浏览文章</div>
         </div>
-        <div class="tag-cloud stagger">
-          {tags.map(([tag, count]) => (
-            <a href={`/tags/${tag}`} class="tag">
-              #{tag} <span style="opacity: 0.6;">({count})</span>
-            </a>
-          ))}
-        </div>
-      </section>
-    )}
+      </div>
+    </section>
   </main>
   <Footer />
 </BaseLayout>
 
 <script>
-  // 打字机效果
+  // ===== 打字机效果 =====
   function initTypewriter() {
     const el = document.getElementById('heroTitle');
     if (!el) return;
     const fullText = el.textContent || '';
     el.textContent = '';
     el.classList.add('typing');
-
     let i = 0;
-    const speed = 120; // 每个字符的打字间隔（毫秒）
-
+    const speed = 120;
     function type() {
       if (i < fullText.length) {
         el.textContent = fullText.slice(0, i + 1);
         i++;
         setTimeout(type, speed);
       } else {
-        // 打字完成后移除光标闪烁，改为常亮光标
         el.classList.remove('typing');
         el.classList.add('typing-done');
       }
     }
-
-    // 延迟启动，等 Hero 区域淡入后开始
     setTimeout(type, 600);
   }
 
-  // 分类筛选
-  const buttons = document.querySelectorAll('.category-btn');
-  const cards = document.querySelectorAll('#masonryGrid .post-card');
+  // ===== 钟面博客轮播 =====
+  function initClockCarousel() {
+    const cards = document.querySelectorAll('.carousel-card');
+    const totalCards = cards.length;
+    if (totalCards === 0) return;
 
-  buttons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const category = btn.getAttribute('data-category');
+    const anglePerCard = 360 / totalCards;
+    let currentRotation = 0;
+    let targetRotation = 0;
+    let isAnimating = false;
+    const maxRotation = 360 * 2; // 最多转两圈
 
-      // 更新按钮状态
-      buttons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
+    // 动态计算半径
+    function getRadius() {
+      const display = document.getElementById('blogDisplay');
+      if (!display) return 240;
+      const w = display.offsetWidth;
+      return Math.max(160, Math.min(300, w * 0.28));
+    }
 
-      // 筛选卡片
-      cards.forEach((card) => {
-        const cardCategory = card.getAttribute('data-category');
-        if (category === '全部' || cardCategory === category) {
-          card.style.display = '';
-          // 重新触发动画
-          card.classList.remove('revealed');
-          requestAnimationFrame(() => {
-            card.classList.add('revealed');
-          });
-        } else {
-          card.style.display = 'none';
-        }
+    function updateCarousel() {
+      // 缓动插值
+      currentRotation += (targetRotation - currentRotation) * 0.1;
+
+      if (Math.abs(targetRotation - currentRotation) < 0.05) {
+        currentRotation = targetRotation;
+        isAnimating = false;
+      }
+
+      const radius = getRadius();
+
+      cards.forEach((card, i) => {
+        const angle = (i * anglePerCard + currentRotation) % 360;
+        const rad = angle * Math.PI / 180;
+
+        // 圆周位置（从顶部开始顺时针）
+        const x = radius * Math.sin(rad);
+        const y = -radius * Math.cos(rad);
+
+        // 景深：|sin(rad)| → 0在顶部/底部，1在左右两侧
+        const depth = Math.abs(Math.sin(rad));
+
+        // 视觉属性
+        const scale = 0.3 + 0.7 * depth;
+        const opacity = Math.max(0, depth * 1.4 - 0.4);
+        const blur = (1 - depth) * 8;
+        const zIndex = Math.round(depth * 100);
+
+        card.style.transform =
+          'translate(-50%, -50%) translate(' + x + 'px, ' + y + 'px) scale(' + scale + ')';
+        card.style.opacity = opacity;
+        card.style.filter = 'blur(' + blur + 'px)';
+        card.style.zIndex = zIndex;
+        card.style.pointerEvents = depth > 0.3 ? 'auto' : 'none';
       });
-    });
-  });
 
-  // 页面加载后启动打字机
+      // 更新钟面指针（左钟顺时针，右钟逆时针→镜像）
+      const clockAngle = currentRotation % 360;
+      const handsLeft = document.getElementById('clockHandsLeft');
+      const handsRight = document.getElementById('clockHandsRight');
+      if (handsLeft) handsLeft.style.transform = 'rotate(' + clockAngle + 'deg)';
+      if (handsRight) handsRight.style.transform = 'rotate(' + (-clockAngle) + 'deg)';
+
+      // 更新进度条
+      const progress = Math.min(1, Math.max(0, currentRotation / maxRotation));
+      const fill = document.getElementById('progressFill');
+      const label = document.getElementById('progressLabel');
+      if (fill) fill.style.width = (progress * 100) + '%';
+      if (label) {
+        const activeIndex = Math.round(currentRotation / anglePerCard) % totalCards;
+        label.textContent = (activeIndex + 1) + ' / ' + totalCards;
+      }
+
+      if (isAnimating) {
+        requestAnimationFrame(updateCarousel);
+      }
+    }
+
+    function startAnimation() {
+      if (!isAnimating) {
+        isAnimating = true;
+        requestAnimationFrame(updateCarousel);
+      }
+    }
+
+    // 滚轮控制
+    const blogSection = document.getElementById('blogSection');
+    let isBlogActive = false;
+
+    const observer = new IntersectionObserver(function (entries) {
+      isBlogActive = entries[0].intersectionRatio > 0.5;
+    }, { threshold: [0, 0.5, 1] });
+    observer.observe(blogSection);
+
+    // 隐藏提示文字
+    let hintHidden = false;
+    const hint = document.getElementById('carouselHint');
+
+    blogSection.addEventListener('wheel', function (e) {
+      if (!isBlogActive) return;
+
+      // 在起始位置向上滚动 → 允许回到封面
+      if (targetRotation <= 0 && e.deltaY < 0) return;
+      // 在结束位置向下滚动 → 允许继续往下
+      if (targetRotation >= maxRotation && e.deltaY > 0) return;
+
+      e.preventDefault();
+      targetRotation += e.deltaY * 0.3;
+      targetRotation = Math.max(0, Math.min(maxRotation, targetRotation));
+      startAnimation();
+
+      // 首次滚动后隐藏提示
+      if (!hintHidden && hint) {
+        hintHidden = true;
+        hint.style.opacity = '0';
+        setTimeout(function () { if (hint) hint.style.display = 'none'; }, 500);
+      }
+    }, { passive: false });
+
+    // 触摸支持
+    let touchStartY = 0;
+    blogSection.addEventListener('touchstart', function (e) {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    blogSection.addEventListener('touchmove', function (e) {
+      if (!isBlogActive) return;
+      const deltaY = touchStartY - e.touches[0].clientY;
+      touchStartY = e.touches[0].clientY;
+
+      if (targetRotation <= 0 && deltaY < 0) return;
+      if (targetRotation >= maxRotation && deltaY > 0) return;
+
+      e.preventDefault();
+      targetRotation += deltaY * 0.8;
+      targetRotation = Math.max(0, Math.min(maxRotation, targetRotation));
+      startAnimation();
+    }, { passive: false });
+
+    // 窗口大小变化时重新计算
+    window.addEventListener('resize', function () {
+      startAnimation();
+    });
+
+    // 初始化
+    updateCarousel();
+  }
+
+  // 启动
   initTypewriter();
+  initClockCarousel();
 </script>
